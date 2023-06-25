@@ -1,5 +1,5 @@
 // @tittle Voting System 
-// @author Dogukan Kokce - Mustafa Onur Başer - Melis Tombul - <your names>
+// @author Dogukan Kokce - Mustafa Onur Başer - Melis Tombul - Omer Ozkilic
 
 /* ---------------------------------
   candidate   |   AGE   |      ID
@@ -141,4 +141,34 @@ contract voting_system {
         }   
         // We return the results
         return results;
+
+        function Winner() public view returns(string memory){
+
+        // can't run function until voting is done
+        require(now>(start_voting + 5 minutes), "Voting is not over yet.");
+        
+        //The variable winner will contain the name of the winning candidate
+        string memory winner= candidates[0];
+        // In case of a tie
+        bool flag;
+        
+        //We traverse the array of candidates to determine the candidate with the highest number of votes.
+        for(uint i = 1; i <candidates.length; i++){
+            
+            if(candidate_votes[winner] < candidate_votes[candidates[i]]){
+                winner = candidates[i];
+                flag=false;
+            }else{
+                if(candidate_votes[winner] == candidate_votes[candidates[i]]){
+                    flag=true;
+                }
+            }
+        }
+        
+        if(flag==true){
+            winner = "There is a tie between the candidates!";
+            
+        }
+        return winner;
+    }
 }
