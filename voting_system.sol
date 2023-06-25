@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity >=0.4.4 <0.7.0;
+pragma solidity >=0.4.4 <0.8.20;
 pragma experimental ABIEncoderV2;
 
 contract ElectionSystem {
@@ -14,12 +14,12 @@ contract ElectionSystem {
 
     constructor() public {
         contractOwner = msg.sender;
-        electionStartTime = now;
+        electionStartTime = block.timestamp;
     }
 
     // Register a candidate for the election
     function registerCandidate(string memory candidateName, uint candidateAge, string memory candidateId) public {
-        require(now <= (electionStartTime + 5 minutes), "Candidate registration period has ended");
+        require(block.timestamp <= (electionStartTime + 5 minutes), "Candidate registration period has ended");
         bytes32 candidateHash = keccak256(abi.encodePacked(candidateName, candidateAge, candidateId));
         candidateHashes[candidateName] = candidateHash;
         candidateNames.push(candidateName);
@@ -32,8 +32,8 @@ contract ElectionSystem {
 
     // Vote for a candidate
     function castVote(string memory chosenCandidate) public {
-        require(now <= (electionStartTime + 5 minutes), "Voting period has ended");
-        
+        require(block.timestamp <= (electionStartTime + 5 minutes), "Voting period has ended");
+
         bytes32 currentVoterHash = keccak256(abi.encodePacked(msg.sender));
 
         for(uint i = 0; i < voterHashes.length; i++){
@@ -41,16 +41,16 @@ contract ElectionSystem {
         }
 
         voterHashes.push(currentVoterHash);
-        
+
         bool isCandidateRegistered = false;
-        
+
         for(uint j = 0; j < candidateNames.length; j++){
             if(keccak256(abi.encodePacked(candidateNames[j])) == keccak256(abi.encodePacked(chosenCandidate))){
                 isCandidateRegistered = true;
             }
         }
         require(isCandidateRegistered, "Candidate with this name doesn't exist");
-        
+
         candidateVotes[chosenCandidate]++;
     }
 
@@ -70,11 +70,11 @@ contract ElectionSystem {
 
     // Declare the winner
     function declareWinner() public view returns(string memory){
-        require(now > (electionStartTime + 5 minutes), "Voting period is not over yet.");
-        
+        require(block.timestamp > (electionStartTime + 5 minutes), "Voting period is not over yet.");
+
         string memory winner = candidateNames[0];
         bool isTie;
-        
+
         for(uint i = 1; i <candidateNames.length; i++){
             if(candidateVotes[winner] < candidateVotes[candidateNames[i]]){
                 winner = candidateNames[i];
@@ -83,7 +83,7 @@ contract ElectionSystem {
                 isTie = true;
             }
         }
-        
+
         if(isTie){
             winner = "There is a tie between the candidates!";
         }
@@ -104,7 +104,7 @@ contract ElectionSystem {
         bytes memory buffer = new bytes(digits);
         while (value != 0) {
             digits -= 1;
-            buffer[digits] = byte(uint8(48 + value % 10));
+            buffer[digits] = bytes1(uint8(48 + value % 10));
             value /= 10;
         }
         return string(buffer);
