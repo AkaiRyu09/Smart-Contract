@@ -141,8 +141,9 @@ contract voting_system {
         }   
         // We return the results
         return results;
-
-        function Winner() public view returns(string memory){
+    }
+    
+    function Winner() public view returns(string memory){
 
         // can't run function until voting is done
         require(now>(start_voting + 5 minutes), "Voting is not over yet.");
@@ -166,9 +167,8 @@ contract voting_system {
         }
         
         if(flag==true){
-            winner = "There is a tie between the candidates!";
-            
+            winner = "There is a tie between the candidates!";   
         }
-        return winner;
+        return winner; 
     }
 }
