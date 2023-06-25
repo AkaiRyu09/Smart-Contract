@@ -1,5 +1,5 @@
 // @tittle Voting System 
-// @author Dogukan Kokce - Mustafa Onur Başer - <your names>
+// @author Dogukan Kokce - Mustafa Onur Başer - Melis Tombul - <your names>
 
 /* ---------------------------------
   candidate   |   AGE   |      ID
@@ -100,5 +100,45 @@ contract voting_system {
         //Add a vote to the selected candidate
         candidate_votes[_candidate]++;
     }
+      /**
+     * @dev This function return the name of a candidate, it returns the number of votes he has.
+     * For this function to make sense we must:
+     * 1. With the mapping candidate votes we can access the votes that the candidate has.
+     */
 
+    function seeVotes(string memory _candidate) public view returns(uint) {
+        return candidate_votes[_candidate];
+    }
+    //Helper function that transforms a uint to a string
+    function uint2str(uint _i) internal pure returns (string memory _uintAsString) {
+        if (_i == 0) {
+            return "0";
+        }
+        uint j = _i;
+        uint len;
+        while (j != 0) {
+            len++;
+            j /= 10;
+        }
+        bytes memory bstr = new bytes(len);
+        uint k = len - 1;
+        while (_i != 0) {
+            bstr[k--] = byte(uint8(48 + _i % 10));
+            _i /= 10;
+        }
+        return string(bstr);
+    }
+    // See the votes of each of the candidates
+    function seeResults() public view returns(string memory){
+        // We save the candidates with their respective votes in a string variable
+        string memory results;
+        
+        // We loop through the array of candidates to update the results string
+        for(uint i = 0; i < candidates.length; i++){
+            //We update the results string and add the candidate that occupies position "i" of the candidates array
+            //and your number of votes
+            results = string(abi.encodePacked(results, "(", candidates[i], ", ", uint2str(seeVotes(candidates[i])), ")---"));
+        }   
+        // We return the results
+        return results;
 }
