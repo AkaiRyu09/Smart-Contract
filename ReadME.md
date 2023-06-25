@@ -1,1 +1,1 @@
-
+For testing our solidity smart contract called "ElectionSystem" using Remix Etherium IDE. Screenshots provided in report.
