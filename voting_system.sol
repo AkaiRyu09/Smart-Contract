@@ -1,174 +1,112 @@
-// @tittle Voting System 
-// @author Dogukan Kokce - Mustafa Onur Başer - Melis Tombul - Omer Ozkilic
+// SPDX-License-Identifier: MIT
+pragma solidity >=0.4.4 <0.7.0;
+pragma experimental ABIEncoderV2;
 
-/* ---------------------------------
-  candidate   |   AGE   |      ID
- -----------------------------------
-  Catherine   |    23    |    123X
-  Gabriela    |    24    |    543T
-  Joan        |    21    |    987P
-  Javier      |    29    |    567W */
+contract ElectionSystem {
+    address private contractOwner;
+    uint private electionStartTime;
 
-contract voting_system {
-    //Address of the owner of the contract
-    address owner;
+    mapping (string => bytes32) private candidateHashes;
+    mapping (string => uint) private candidateVotes;
 
-    //We store the time value in which the elections begin
-    uint start_voting;
+    string [] private candidateNames;
+    bytes32 [] private voterHashes;
 
     constructor() public {
-        owner = msg.sender;
-        start_voting = now;
+        contractOwner = msg.sender;
+        electionStartTime = now;
     }
 
-    // Relationship between the name of the candidate and the hash of their personal data
-    mapping (string => bytes32) candidate_ID;
-
-    // Relation between the name of the candidate and the number of votes
-    mapping (string => uint) candidate_votes;
-
-    //List to store the names of the candidates
-    string [] candidates;
-
-    //List of voter identity hashes
-    bytes32 [] voters;
-
-
-    /**
-     * @dev This function is to register as a candidate for the elections
-     * It is public for anyone to register
-     * For this function to make sense we must::
-     * 1. Create the hash of the candidate data.
-     * 2. We store the hash of the candidate's data linked to their name.
-     * 3. We store the name of the candidate in the dynamic array candidates.
-     */
-
-    function candidateRegistration(string memory _candidateName, uint _candidateAge, string memory _candidateId) public {
-        //the current time plus 5 minutes
-        require(now<=(start_voting + 5 minutes), "Candidates can no longer be submitted");
-        bytes32 candidate_hash = keccak256(abi.encodePacked(_candidateName, _candidateAge, _candidateId));
-        candidate_ID[_candidateName] = candidate_hash;
-        candidates.push(_candidateName);     
+    // Register a candidate for the election
+    function registerCandidate(string memory candidateName, uint candidateAge, string memory candidateId) public {
+        require(now <= (electionStartTime + 5 minutes), "Candidate registration period has ended");
+        bytes32 candidateHash = keccak256(abi.encodePacked(candidateName, candidateAge, candidateId));
+        candidateHashes[candidateName] = candidateHash;
+        candidateNames.push(candidateName);
     }
 
-/**
-     * @dev This function is to see all the candidates registered
-     * For this function to make sense we must:
-     * 1. We must to return the dynamic array where the candidates are storaged. 
-     * string [] candidates;
-     */
-
-    function seeCandidates() public view returns(string[] memory) {
-        return candidates;
+    // View all registered candidates
+    function viewRegisteredCandidates() public view returns(string[] memory) {
+        return candidateNames;
     }
 
-     /**
-     * @dev This function is so that people can vote for a candidate
-     * For this function to make sense we must:
-     * 1. Calculate the hash of the address of the person who executes this function.
-     * 2. We check if the voter has already voted.
-     * 3. We store the hash of the voter inside the voters array in case they didn't vote. ´´string [] voters´´
-     * 4. We verify that the candidate is on the list of candidates
-     * 5. 4. Finally we add a vote to the selected candidate.
-     */
-
-    function Vote(string memory _candidate) public {
-        //You can only vote within the voting period
-        require(now<=start_voting + 5 minutes, "can no longer vote");
+    // Vote for a candidate
+    function castVote(string memory chosenCandidate) public {
+        require(now <= (electionStartTime + 5 minutes), "Voting period has ended");
         
-        bytes32 voter_hash = keccak256(abi.encodePacked(msg.sender));
+        bytes32 currentVoterHash = keccak256(abi.encodePacked(msg.sender));
 
-        for(uint i = 0; i < voters.length; i++){
-            require(voters[i] != voter_hash, "You already voted!");
+        for(uint i = 0; i < voterHashes.length; i++){
+            require(voterHashes[i] != currentVoterHash, "You have already cast your vote!");
         }
 
-        voters.push(voter_hash);
+        voterHashes.push(currentVoterHash);
         
-        //The flag variable will be true if the candidate is on the list
-        bool flag = false;
+        bool isCandidateRegistered = false;
         
-        for(uint j = 0; j < candidates.length; j++){
-            // We compare the name of the candidate with the name of the candidate in position i
-            if(keccak256(abi.encodePacked(candidates[j])) == keccak256(abi.encodePacked(_candidate))){
-               //If they match we change the value of flag
-                flag=true;
+        for(uint j = 0; j < candidateNames.length; j++){
+            if(keccak256(abi.encodePacked(candidateNames[j])) == keccak256(abi.encodePacked(chosenCandidate))){
+                isCandidateRegistered = true;
             }
         }
-        // It is necessary that the candidate is on the list to be able to vote
-        require(flag==true, "No hay ningun candidato con ese nombre");
+        require(isCandidateRegistered, "Candidate with this name doesn't exist");
         
-        //Add a vote to the selected candidate
-        candidate_votes[_candidate]++;
+        candidateVotes[chosenCandidate]++;
     }
-      /**
-     * @dev This function return the name of a candidate, it returns the number of votes he has.
-     * For this function to make sense we must:
-     * 1. With the mapping candidate votes we can access the votes that the candidate has.
-     */
 
-    function seeVotes(string memory _candidate) public view returns(uint) {
-        return candidate_votes[_candidate];
+    // View votes of a candidate
+    function viewVotesForCandidate(string memory candidate) public view returns(uint) {
+        return candidateVotes[candidate];
     }
-    //Helper function that transforms a uint to a string
-    function uint2str(uint _i) internal pure returns (string memory _uintAsString) {
-        if (_i == 0) {
-            return "0";
+
+    // View election results
+    function viewElectionResults() public view returns(string memory){
+        string memory results = "";
+        for(uint i = 0; i < candidateNames.length; i++){
+            results = string(abi.encodePacked(results, "(", candidateNames[i], ", ", uintToString(viewVotesForCandidate(candidateNames[i])), ")---"));
         }
-        uint j = _i;
-        uint len;
-        while (j != 0) {
-            len++;
-            j /= 10;
-        }
-        bytes memory bstr = new bytes(len);
-        uint k = len - 1;
-        while (_i != 0) {
-            bstr[k--] = byte(uint8(48 + _i % 10));
-            _i /= 10;
-        }
-        return string(bstr);
-    }
-    // See the votes of each of the candidates
-    function seeResults() public view returns(string memory){
-        // We save the candidates with their respective votes in a string variable
-        string memory results;
-        
-        // We loop through the array of candidates to update the results string
-        for(uint i = 0; i < candidates.length; i++){
-            //We update the results string and add the candidate that occupies position "i" of the candidates array
-            //and your number of votes
-            results = string(abi.encodePacked(results, "(", candidates[i], ", ", uint2str(seeVotes(candidates[i])), ")---"));
-        }   
-        // We return the results
         return results;
     }
-    
-    function Winner() public view returns(string memory){
 
-        // can't run function until voting is done
-        require(now>(start_voting + 5 minutes), "Voting is not over yet.");
+    // Declare the winner
+    function declareWinner() public view returns(string memory){
+        require(now > (electionStartTime + 5 minutes), "Voting period is not over yet.");
         
-        //The variable winner will contain the name of the winning candidate
-        string memory winner= candidates[0];
-        // In case of a tie
-        bool flag;
+        string memory winner = candidateNames[0];
+        bool isTie;
         
-        //We traverse the array of candidates to determine the candidate with the highest number of votes.
-        for(uint i = 1; i <candidates.length; i++){
-            
-            if(candidate_votes[winner] < candidate_votes[candidates[i]]){
-                winner = candidates[i];
-                flag=false;
-            }else{
-                if(candidate_votes[winner] == candidate_votes[candidates[i]]){
-                    flag=true;
-                }
+        for(uint i = 1; i <candidateNames.length; i++){
+            if(candidateVotes[winner] < candidateVotes[candidateNames[i]]){
+                winner = candidateNames[i];
+                isTie = false;
+            }else if(candidateVotes[winner] == candidateVotes[candidateNames[i]]){
+                isTie = true;
             }
         }
         
-        if(flag==true){
-            winner = "There is a tie between the candidates!";   
+        if(isTie){
+            winner = "There is a tie between the candidates!";
         }
-        return winner; 
+        return winner;
+    }
+
+    // Helper function to convert uint to string
+    function uintToString(uint value) internal pure returns (string memory result) {
+        if (value == 0) {
+            return "0";
+        }
+        uint temp = value;
+        uint digits;
+        while (temp != 0) {
+            digits++;
+            temp /= 10;
+        }
+        bytes memory buffer = new bytes(digits);
+        while (value != 0) {
+            digits -= 1;
+            buffer[digits] = byte(uint8(48 + value % 10));
+            value /= 10;
+        }
+        return string(buffer);
     }
 }
